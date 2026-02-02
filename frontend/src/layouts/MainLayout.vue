@@ -16,7 +16,7 @@
 
         <!-- Ícone Git à direita -->
         <a
-          href="https://github.com/seu-usuario/dropz"
+          href="https://github.com/luizherbet/dropz"
           target="_blank"
           rel="noopener"
           aria-label="Repositório"
