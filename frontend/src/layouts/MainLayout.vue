@@ -1,81 +1,132 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-header elevated>
-      <q-toolbar>
-        <q-btn flat dense round icon="menu" aria-label="Menu" @click="toggleLeftDrawer" />
+    <q-header class="header-custom bg-white text-dark">
+      <q-toolbar class="q-px-md">
+        <!-- Logo + nome à esquerda -->
+        <router-link to="/" class="row items-center  text-dark">
+          <img
+            src="../assets/logo.png"
+            alt="Dropz"
+            class="header-logo"
+          />
+          <span class="header-title ">dropz</span>
+        </router-link>
 
-        <q-toolbar-title> Quasar App </q-toolbar-title>
+        <q-space />
 
-        <div>Quasar v{{ $q.version }}</div>
+        <!-- Ícone Git à direita -->
+        <a
+          href="https://github.com/seu-usuario/dropz"
+          target="_blank"
+          rel="noopener"
+          aria-label="Repositório"
+          class="git-link"
+        >
+          <i class="bi bi-github"></i>
+        </a>
       </q-toolbar>
     </q-header>
-
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered>
-      <q-list>
-        <q-item-label header> Essential Links </q-item-label>
-
-        <EssentialLink v-for="link in linksList" :key="link.title" v-bind="link" />
-      </q-list>
-    </q-drawer>
+    <!-- Menu abaixo do header -->
+    <nav class="menu-nav">
+      <router-link to="/kanban" class="menu-link">Kanban</router-link>
+      <router-link to="/clientes" class="menu-link">Clientes</router-link>
+      <router-link to="/demandas" class="menu-link">Demandas</router-link>
+      <router-link to="/relatorio" class="menu-link">Relatório</router-link>
+    </nav>
 
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <q-footer class="footer-custom">
+      <q-toolbar class="justify-center">
+        <span class="footer-text">Dropz — Desenvolvido por Luiz Herbet</span>
+      </q-toolbar>
+    </q-footer>
+
   </q-layout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import EssentialLink from 'components/EssentialLink.vue'
 
-const linksList = [
-  {
-    title: 'Docs',
-    caption: 'quasar.dev',
-    icon: 'school',
-    link: 'https://quasar.dev',
-  },
-  {
-    title: 'Github',
-    caption: 'github.com/quasarframework',
-    icon: 'code',
-    link: 'https://github.com/quasarframework',
-  },
-  {
-    title: 'Discord Chat Channel',
-    caption: 'chat.quasar.dev',
-    icon: 'chat',
-    link: 'https://chat.quasar.dev',
-  },
-  {
-    title: 'Forum',
-    caption: 'forum.quasar.dev',
-    icon: 'record_voice_over',
-    link: 'https://forum.quasar.dev',
-  },
-  {
-    title: 'Twitter',
-    caption: '@quasarframework',
-    icon: 'rss_feed',
-    link: 'https://twitter.quasar.dev',
-  },
-  {
-    title: 'Facebook',
-    caption: '@QuasarFramework',
-    icon: 'public',
-    link: 'https://facebook.quasar.dev',
-  },
-  {
-    title: 'Quasar Awesome',
-    caption: 'Community Quasar projects',
-    icon: 'favorite',
-    link: 'https://awesome.quasar.dev',
-  },
-]
-
-const leftDrawerOpen = ref(false)
-
-function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value
-}
 </script>
+
+<style scoped>
+.header-custom {
+  font-family: 'Poppins', sans-serif;
+  border-bottom: 1px solid #e0e0e0;
+
+}
+
+.header-custom a {
+  text-decoration: none !important;
+}
+
+.header-logo {
+  height: 36px;
+  width: auto;
+  margin-right: 10px;
+}
+
+.header-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.git-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: #000;
+}
+
+.git-link .bi {
+  font-size: 1.5rem;
+  color: #000;
+}
+
+.menu-nav {
+  margin-top: 4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
+.menu-link {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.menu-link:hover {
+  background: #f0f0f0;
+  color: #000;
+}
+
+.menu-link.router-link-active {
+  background: #e3f2fd;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+.footer-custom {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.7rem;
+  background: black;
+}
+
+.footer-text {
+  font-weight: 100;
+  color: white;
+}
+</style>
