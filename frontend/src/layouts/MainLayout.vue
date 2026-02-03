@@ -91,7 +91,6 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
   background: #fff;
   font-family: 'Poppins', sans-serif;
 }
@@ -114,6 +113,10 @@
   background: #e3f2fd;
   color: #1976d2;
   font-weight: 600;
+}
+
+.q-page-container {
+  padding: 1rem !important;
 }
 
 .footer-custom {
