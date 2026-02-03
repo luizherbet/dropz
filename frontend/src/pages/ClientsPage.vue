@@ -18,13 +18,14 @@
     </div>
 
     <q-table
-      :rows="clients"
+      :rows="rowsFiltrados"
       :columns="columns"
       row-key="id"
       flat
       bordered
       :loading="loading"
       no-data-label="Nenhum cliente cadastrado"
+      @row-click="onRowClick"
     />
 
     <!-- Modal cadastro de cliente -->
@@ -82,12 +83,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const search = ref('')
 const loading = ref(false)
-const clients = ref([])
-
+const clients = ref([
+  { id: 1, nome: 'Tech Solutions Ltda', email: 'contato@techsolutions.com', avisar_por_email: true, whatsapp: '(11) 99999-1111', avisar_por_whatsapp: true, observacoes: '' },
+  { id: 2, nome: 'Comércio Digital', email: 'projetos@comerciodigital.com', avisar_por_email: true, whatsapp: '(11) 99999-2222', avisar_por_whatsapp: false, observacoes: '' },
+  { id: 3, nome: 'Indústria Alpha', email: 'ti@industriaalpha.com', avisar_por_email: true, whatsapp: '', avisar_por_whatsapp: false, observacoes: 'Cliente corporativo' },
+  { id: 4, nome: 'Startup Beta', email: 'ola@startupbeta.io', avisar_por_email: true, whatsapp: '(21) 98888-3333', avisar_por_whatsapp: true, observacoes: '' },
+])
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'nome', label: 'Nome', field: 'nome', align: 'left', sortable: true },
@@ -95,6 +100,7 @@ const columns = [
 ]
 const showDialog = ref(false)
 const form = ref({
+  id: null,
   nome: '',
   email: '',
   avisar_por_email: true,
@@ -108,8 +114,22 @@ function onNewClient() {
   showDialog.value = true
 }
 
+function onRowClick(evt, row) {
+  form.value = {
+    id: row.id,
+    nome: row.nome ?? '',
+    email: row.email ?? '',
+    avisar_por_email: row.avisar_por_email ?? true,
+    whatsapp: row.whatsapp ?? '',
+    avisar_por_whatsapp: row.avisar_por_whatsapp ?? false,
+    observacoes: row.observacoes ?? '',
+  }
+  showDialog.value = true
+}
+
 function onReset() {
   form.value = {
+    id: null,
     nome: '',
     email: '',
     avisar_por_email: true,
@@ -119,11 +139,50 @@ function onReset() {
   }
 }
 
+function atualizarCliente() {
+  const idx = clients.value.findIndex(c => c.id === form.value.id)
+  if (idx === -1) return
+  const clienteAtual = clients.value[idx]
+  clients.value[idx] = { ...clienteAtual, ...form.value }
+}
+
+function adicionarCliente() {
+  let novoId = 1
+  if (clients.value.length > 0) {
+    const ids = clients.value.map(c => c.id)
+    novoId = Math.max(...ids) + 1
+  }
+  const novo = {
+    id: novoId,
+    nome: form.value.nome,
+    email: form.value.email,
+    avisar_por_email: form.value.avisar_por_email,
+    whatsapp: form.value.whatsapp,
+    avisar_por_whatsapp: form.value.avisar_por_whatsapp,
+    observacoes: form.value.observacoes,
+  }
+  clients.value.push(novo)
+}
+
 function onSubmit() {
+  if (form.value.id != null) {
+    atualizarCliente()
+  } else {
+    adicionarCliente()
+  }
   showDialog.value = false
   onReset()
 }
 
+const rowsFiltrados = computed(() => {
+  const termo = (search.value || '').trim().toLowerCase()
+  if (!termo) return clients.value
+  return clients.value.filter((c) => {
+    const nome = (c.nome || '').toLowerCase()
+    const email = (c.email || '').toLowerCase()
+    return nome.includes(termo) || email.includes(termo)
+  })
+})
 </script>
 
 <style scoped>

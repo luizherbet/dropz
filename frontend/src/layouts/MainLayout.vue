@@ -116,7 +116,9 @@
 }
 
 .q-page-container {
-  padding: 1rem !important;
+  margin: 0 auto;
+  max-width: 1650px;
+  padding-top: 1rem !important;
 }
 
 .footer-custom {

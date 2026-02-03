@@ -18,13 +18,15 @@
     </div>
 
     <q-table
-      :rows="demands"
+      :rows="rowsFiltrados"
       :columns="columns"
       row-key="id"
       flat
       bordered
       :loading="loading"
       no-data-label="Nenhuma demanda cadastrada"
+      @row-click="onRowClick"
+      :rows-per-page-options="[0]"
     />
 
     <q-dialog v-model="showDialog" persistent>
@@ -45,6 +47,7 @@
                   emit-value
                   map-options
                   :rules="[val => val != null && val !== '' || 'Selecione o cliente']"
+                  :disable="!!form.id"
                 />
               </div>
               <div class="col-12">
@@ -152,13 +155,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const search = ref('')
 const loading = ref(false)
-const demands = ref([])
-const clientOptions = ref([])
-
+const demands = ref([
+  { id: 1, titulo: 'Ajuste layout login', prioridade: 'Alta', status: 'backlog', cliente: { nome: 'Tech Solutions Ltda' }, responsavel: 'Luiz' },
+  { id: 2, titulo: 'API relatório mensal', prioridade: 'Normal', status: 'autorizacao', cliente: { nome: 'Comércio Digital' }, responsavel: 'João' },
+  { id: 3, titulo: 'Correção bug checkout', prioridade: 'Alta', status: 'fila', cliente: { nome: 'Tech Solutions Ltda' }, responsavel: 'Maria' },
+  { id: 4, titulo: 'Dashboard analytics', prioridade: 'Normal', status: 'desenvolvimento', cliente: { nome: 'Indústria Alpha' }, responsavel: 'Pedro' },
+  { id: 5, titulo: 'Integração pagamento', prioridade: 'Alta', status: 'teste', cliente: { nome: 'Comércio Digital' }, responsavel: 'Ana' },
+  { id: 6, titulo: 'Deploy homologação', prioridade: 'Baixa', status: 'deploy', cliente: { nome: 'Startup Beta' }, responsavel: 'Carlos' },
+  { id: 7, titulo: 'Relatório fiscal jan/26', prioridade: 'Normal', status: 'concluido', cliente: { nome: 'Indústria Alpha' }, responsavel: 'Maria' },
+])
+const clientOptions = ref([
+  { id: 1, nome: 'Tech Solutions Ltda' },
+  { id: 2, nome: 'Comércio Digital' },
+  { id: 3, nome: 'Indústria Alpha' },
+  { id: 4, nome: 'Startup Beta' },
+])
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'titulo', label: 'Título', field: 'titulo', align: 'left', sortable: true },
@@ -170,6 +185,7 @@ const columns = [
 
 const showDialog = ref(false)
 const form = ref({
+  id: null,
   cliente_id: null,
   titulo: '',
   prioridade: 'Normal',
@@ -186,6 +202,28 @@ const form = ref({
   feedback: '',
 })
 
+function onRowClick(evt, row) {
+  const clienteId = clientOptions.value.find(c => c.nome === row.cliente?.nome)?.id ?? null
+  form.value = {
+    id: row.id,
+    cliente_id: clienteId,
+    titulo: row.titulo ?? '',
+    prioridade: row.prioridade ?? 'Normal',
+    setor: row.setor ?? '',
+    responsavel: row.responsavel ?? '',
+    quem_deve_testar: row.quem_deve_testar ?? '',
+    descricao_detalhada: row.descricao_detalhada ?? '',
+    midia: row.midia ?? '',
+    cobrada_do_cliente: row.cobrada_do_cliente ?? false,
+    valor_total: row.valor_total ?? null,
+    valor_pago: row.valor_pago ?? null,
+    tempo_estimado: row.tempo_estimado ?? null,
+    tempo_gasto: row.tempo_gasto ?? null,
+    feedback: row.feedback ?? '',
+  }
+  showDialog.value = true
+}
+
 function onNewDemand() {
   onReset()
   showDialog.value = true
@@ -193,6 +231,7 @@ function onNewDemand() {
 
 function onReset() {
   form.value = {
+    id: null,
     cliente_id: null,
     titulo: '',
     prioridade: 'Normal',
@@ -211,10 +250,25 @@ function onReset() {
 }
 
 function onSubmit() {
-  // TODO: POST /demands quando API estiver pronta
   showDialog.value = false
   onReset()
 }
+const rowsFiltrados = computed(() => {
+  const termo = (search.value || '').trim().toLowerCase()
+  if (!termo) return demands.value
+  return demands.value.filter((d) => {
+    const titulo = (d.titulo || '').toLowerCase()
+    const cliente = (d.cliente?.nome || '').toLowerCase()
+    const responsavel = (d.responsavel || '').toLowerCase()
+    const status = (d.status || '').toLowerCase()
+    return (
+      titulo.includes(termo) ||
+      cliente.includes(termo) ||
+      responsavel.includes(termo) ||
+      status.includes(termo)
+    )
+  })
+})
 </script>
 
 <style scoped>

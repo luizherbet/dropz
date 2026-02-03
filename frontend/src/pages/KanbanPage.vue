@@ -43,7 +43,7 @@
             <div class="text-subtitle2 text-grey-8 q-mb-sm">Dados gerais</div>
             <div class="row q-col-gutter-md">
               <div class="col-12">
-                <q-input v-model="selectedDemand.cliente.nome" label="Cliente" outlined dense />
+                <q-input :model-value="selectedDemand.cliente.nome" label="Cliente" outlined dense readonly />
               </div>
               <div class="col-12">
                 <q-input v-model="selectedDemand.titulo" label="Título *" outlined dense :rules="[val => !!val || 'Título é obrigatório']" />
