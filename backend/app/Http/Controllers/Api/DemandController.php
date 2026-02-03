@@ -82,7 +82,6 @@ class DemandController extends Controller
     }
     public function updateStatus(Request $request, Demand $demand)
     {
-        //dump($demand);
         $validated = $request->validate([
             'status' => ['required', Rule::in(DemandStatus::values())],
         ]);
