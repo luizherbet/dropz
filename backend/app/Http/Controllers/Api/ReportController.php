@@ -13,7 +13,6 @@ class ReportController extends Controller
 {
     public function monthlyByClient(Request $request, Client $client)
     {
-        dump($request);
         $validated = $request->validate([
             'month' => ['required', 'date_format:Y-m'],
         ]);

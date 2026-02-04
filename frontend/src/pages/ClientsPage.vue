@@ -25,6 +25,7 @@
       bordered
       :loading="loading"
       no-data-label="Nenhum cliente cadastrado"
+      :rows-per-page-options="[5, 10, 20]"
       @row-click="onRowClick"
     />
 
@@ -83,21 +84,22 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getClients, createClient, updateClient } from '../services/api'
+import { useQuasar } from 'quasar'
 
+const $q = useQuasar()
 const search = ref('')
 const loading = ref(false)
-const clients = ref([
-  { id: 1, nome: 'Tech Solutions Ltda', email: 'contato@techsolutions.com', avisar_por_email: true, whatsapp: '(11) 99999-1111', avisar_por_whatsapp: true, observacoes: '' },
-  { id: 2, nome: 'Comércio Digital', email: 'projetos@comerciodigital.com', avisar_por_email: true, whatsapp: '(11) 99999-2222', avisar_por_whatsapp: false, observacoes: '' },
-  { id: 3, nome: 'Indústria Alpha', email: 'ti@industriaalpha.com', avisar_por_email: true, whatsapp: '', avisar_por_whatsapp: false, observacoes: 'Cliente corporativo' },
-  { id: 4, nome: 'Startup Beta', email: 'ola@startupbeta.io', avisar_por_email: true, whatsapp: '(21) 98888-3333', avisar_por_whatsapp: true, observacoes: '' },
-])
+const submitting = ref(false)
+const clients = ref([])
+
 const columns = [
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'nome', label: 'Nome', field: 'nome', align: 'left', sortable: true },
   { name: 'email', label: 'E-mail', field: 'email', align: 'left', sortable: true },
 ]
+
 const showDialog = ref(false)
 const form = ref({
   id: null,
@@ -107,6 +109,23 @@ const form = ref({
   whatsapp: '',
   avisar_por_whatsapp: false,
   observacoes: '',
+})
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const data = await getClients()
+    clients.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    if (err.response?.status === 404) {
+      clients.value = []
+    } else {
+      clients.value = []
+      $q.notify({ type: 'negative', message: err.response?.data?.message || 'Erro ao carregar clientes.', position: 'top' })
+    }
+  } finally {
+    loading.value = false
+  }
 })
 
 function onNewClient() {
@@ -139,39 +158,41 @@ function onReset() {
   }
 }
 
-function atualizarCliente() {
-  const idx = clients.value.findIndex(c => c.id === form.value.id)
-  if (idx === -1) return
-  const clienteAtual = clients.value[idx]
-  clients.value[idx] = { ...clienteAtual, ...form.value }
-}
-
-function adicionarCliente() {
-  let novoId = 1
-  if (clients.value.length > 0) {
-    const ids = clients.value.map(c => c.id)
-    novoId = Math.max(...ids) + 1
-  }
-  const novo = {
-    id: novoId,
+async function onSubmit() {
+  const payload = {
     nome: form.value.nome,
     email: form.value.email,
     avisar_por_email: form.value.avisar_por_email,
-    whatsapp: form.value.whatsapp,
+    whatsapp: form.value.whatsapp ?? '',
     avisar_por_whatsapp: form.value.avisar_por_whatsapp,
-    observacoes: form.value.observacoes,
+    observacoes: form.value.observacoes ?? '',
   }
-  clients.value.push(novo)
-}
 
-function onSubmit() {
-  if (form.value.id != null) {
-    atualizarCliente()
-  } else {
-    adicionarCliente()
+  submitting.value = true
+  try {
+    if (form.value.id != null) {
+      const updated = await updateClient(form.value.id, payload)
+      const idx = clients.value.findIndex(c => c.id === form.value.id)
+      if (idx !== -1) clients.value[idx] = { ...clients.value[idx], ...updated }
+    } else {
+      const created = await createClient(payload)
+      clients.value.push(created)
+    }
+    showDialog.value = false
+    onReset()
+    $q.notify({ type: 'positive', message: form.value.id != null ? 'Cliente atualizado.' : 'Cliente cadastrado.', position: 'top' })
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Erro ao salvar.'
+    const errors = err.response?.data?.errors
+    if (errors) {
+      const first = Object.values(errors).flat()[0]
+      $q.notify({ type: 'negative', message: first || msg, position: 'top' })
+    } else {
+      $q.notify({ type: 'negative', message: msg, position: 'top' })
+    }
+  } finally {
+    submitting.value = false
   }
-  showDialog.value = false
-  onReset()
 }
 
 const rowsFiltrados = computed(() => {

@@ -34,7 +34,7 @@
       <router-link to="/relatorio" class="menu-link">Relatório</router-link>
     </nav>
 
-    <q-page-container>
+    <q-page-container class="content">
       <router-view />
     </q-page-container>
 
@@ -86,7 +86,7 @@
 }
 
 .menu-nav {
-  margin-top: 4rem;
+  margin-top: 5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,10 +115,11 @@
   font-weight: 600;
 }
 
-.q-page-container {
-  margin: 0 auto;
+.content {
+  margin: 0 auto !important;
+  margin-top: 20px !important;
   max-width: 1650px;
-  padding-top: 1rem !important;
+  padding: 0 !important;
 }
 
 .footer-custom {

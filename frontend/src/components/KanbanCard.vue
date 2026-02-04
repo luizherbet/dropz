@@ -8,15 +8,7 @@
     <q-card class="kanban-card q-mb-sm" flat bordered>
       <q-card-section class="q-pa-sm">
         <div class="row items-start no-wrap">
-          <div class="col ellipsis card-title">{{ title }}</div>
-          <q-icon
-            v-if="flagRetorno"
-            name="flag"
-            size="18px"
-            color="orange"
-            class="q-ml-xs flex-shrink-0"
-            title="Retorno"
-          />
+          <div class="col card-title">{{ title }}</div>
         </div>
         <div v-if="cliente" class="text-caption text-grey-7 ellipsis q-mt-xs">
           {{ cliente }}
@@ -27,9 +19,19 @@
         <div v-if="responsavel" class="text-caption text-grey-8 ellipsis q-mt-xs">
           Responsável: {{ responsavel }}
         </div>
-        <q-chip v-if="prioridade" dense size="sm" :color="priorityColor" text-color="white" class="q-mt-xs">
-          {{ prioridade }}
-        </q-chip>
+        <div class="row items-center no-wrap q-mt-xs q-gutter-xs">
+          <q-chip v-if="prioridade" dense size="sm" :color="priorityColor" text-color="white">
+            {{ prioridade }}
+          </q-chip>
+          <q-icon
+            v-if="mostrarFlagRetorno"
+            name="info"
+            size="18px"
+            color="orange"
+            class="flex-shrink-0"
+            title="Retorno"
+          />
+        </div>
       </q-card-section>
     </q-card>
   </div>
@@ -45,10 +47,16 @@ const props = defineProps({
   setor: { type: String, default: '' },
   responsavel: { type: String, default: '' },
   prioridade: { type: String, default: '' },
-  flagRetorno: { type: Boolean, default: false },
+  flagRetornou: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['click'])
+
+// Ícone aparece quando flag_retornou está true no banco (marcar no modal "Flag retorno" e clicar Salvar)
+const mostrarFlagRetorno = computed(() => {
+  const d = props.demand
+  return d && !!d.flag_retornou
+})
 
 const priorityColor = computed(() => {
   if (props.prioridade === 'Alta') return 'negative'
@@ -71,6 +79,7 @@ function onClick() {
   cursor: grab;
 }
 .kanban-card {
+  max-width: 196px;
   border-radius: 8px;
   transition: box-shadow 0.2s;
 }

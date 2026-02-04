@@ -2,7 +2,7 @@
   <q-page class="max-width-custom q-pa-md">
     <div class="no-print q-mb-lg">
       <div class="text-subtitle2 text-grey-8 q-mb-sm">
-        Selecione o cliente e o período (mês/ano). Em seguida, clique em Gerar para exibir o relatório.
+        Selecione o cliente e o período (Ano-mês). Em seguida, clique em Gerar para exibir o relatório.
       </div>
       <div class="row q-col-gutter-md items-end">
         <div class="col-12 col-sm-4">
@@ -22,11 +22,11 @@
         <div class="col-12 col-sm-4">
           <q-input
             v-model="filtroMesAno"
-            label="Mês e ano"
+            label="Ano e mês"
             outlined
             dense
-            type="month"
-            :max="mesAnoMax"
+            placeholder="Ex: 2026-02"
+            maxlength="7"
           />
         </div>
         <div class="col-12 col-sm-4">
@@ -69,28 +69,24 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { getClients, getMonthlyReport } from '../services/api'
 
 const filtroCliente = ref(null)
 const filtroMesAno = ref('')
 const erro = ref('')
 const relatorioGerado = ref(false)
+const clientes = ref([])
+const reportData = ref(null)
 
-const clientes = ref([
-  { id: 1, nome: 'Tech Solutions Ltda' },
-  { id: 2, nome: 'Comércio Digital' },
-  { id: 3, nome: 'Indústria Alpha' },
-  { id: 4, nome: 'Startup Beta' },
-])
-
-const demandas = ref([
-  { id: 1, titulo: 'Ajuste layout', cliente_id: 1, status: 'concluido', cobrada_do_cliente: true, tempo_estimado: 120, tempo_gasto: 90, feedback: 'Ok', mes: '2026-01' },
-  { id: 2, titulo: 'API relatório', cliente_id: 2, status: 'desenvolvimento', cobrada_do_cliente: true, tempo_estimado: 240, tempo_gasto: 100, feedback: '', mes: '2026-01' },
-  { id: 3, titulo: 'Bug', cliente_id: 1, status: 'teste', cobrada_do_cliente: false, tempo_estimado: 60, tempo_gasto: 45, feedback: 'Testando', mes: '2026-01' },
-  { id: 4, titulo: 'Dashboard analytics', cliente_id: 3, status: 'desenvolvimento', cobrada_do_cliente: true, tempo_estimado: 180, tempo_gasto: 100, feedback: '', mes: '2026-01' },
-  { id: 5, titulo: 'Relatório fiscal jan/26', cliente_id: 3, status: 'concluido', cobrada_do_cliente: true, tempo_estimado: 90, tempo_gasto: 90, feedback: 'Aprovado', mes: '2026-01' },
-  { id: 6, titulo: 'Migração servidor', cliente_id: 2, status: 'concluido', cobrada_do_cliente: false, tempo_estimado: 300, tempo_gasto: 280, feedback: 'Concluído', mes: '2025-12' },
-])
+onMounted(async () => {
+  try {
+    const data = await getClients().catch(() => [])
+    clientes.value = Array.isArray(data) ? data : []
+  } catch {
+    clientes.value = []
+  }
+})
 
 watch([filtroCliente, filtroMesAno], () => {
   relatorioGerado.value = false
@@ -98,56 +94,64 @@ watch([filtroCliente, filtroMesAno], () => {
 })
 
 function statusTexto(s) {
-  if (s === 'backlog') return 'Backlog'
-  if (s === 'autorizacao') return 'Autorização'
-  if (s === 'fila') return 'Fila'
-  if (s === 'desenvolvimento') return 'Em desenvolvimento'
-  if (s === 'teste') return 'Teste'
-  if (s === 'deploy') return 'Deploy'
-  if (s === 'concluido') return 'Concluído'
-  return s
+  if (!s) return ''
+  const map = {
+    backlog: 'Backlog',
+    autorizacao: 'Autorização',
+    fila: 'Fila',
+    desenvolvimento: 'Em desenvolvimento',
+    teste: 'Teste',
+    deploy: 'Deploy',
+    concluido: 'Concluído',
+  }
+  return map[s] || s
 }
 
 const colunas = [
   { name: 'titulo', label: 'Título', field: 'titulo', align: 'left' },
   { name: 'status', label: 'Status', field: (row) => statusTexto(row.status), align: 'left' },
-  { name: 'cobrada', label: 'Cobrada', field: (row) => row.cobrada_do_cliente ? 'Sim' : 'Não', align: 'left' },
+  { name: 'cobrada', label: 'Cobrada', field: (row) => (row.cobrada_do_cliente ? 'Sim' : 'Não'), align: 'left' },
   { name: 'tempo_estimado', label: 'Tempo estimado (min)', field: 'tempo_estimado', align: 'right' },
   { name: 'tempo_gasto', label: 'Tempo gasto (min)', field: 'tempo_gasto', align: 'right' },
   { name: 'feedback', label: 'Feedback', field: (row) => row.feedback || '-', align: 'left' },
 ]
 
-const d = new Date()
-const mesAnoMax = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
-
 const nomeCliente = computed(() => {
-  if (!filtroCliente.value) return ''
+  if (reportData.value?.client?.nome) return reportData.value.client.nome
   const c = clientes.value.find((x) => x.id === filtroCliente.value)
   return c ? c.nome : ''
 })
 
-const lista = computed(() => {
-  if (!filtroCliente.value || !filtroMesAno.value) return []
-  return demandas.value.filter(
-    (dem) => dem.cliente_id === filtroCliente.value && dem.mes === filtroMesAno.value
-  )
-})
+const lista = computed(() => reportData.value?.demands ?? [])
 
-function gerar() {
+async function gerar() {
+  const d = new Date()
+  const mesAnoMax = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+
   erro.value = ''
   if (!filtroCliente.value) {
     erro.value = 'Selecione o cliente.'
     return
   }
   if (!filtroMesAno.value) {
-    erro.value = 'Selecione o mês e o ano.'
+    erro.value = 'Selecione o ano e o mês.'
     return
   }
   if (filtroMesAno.value > mesAnoMax) {
     erro.value = 'O período não pode ser futuro.'
     return
   }
-  relatorioGerado.value = true
+  try {
+    const data = await getMonthlyReport(filtroCliente.value, filtroMesAno.value)
+    reportData.value = data
+    relatorioGerado.value = true
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Erro ao gerar relatório.'
+    const errors = err.response?.data?.errors
+    erro.value = errors?.month?.[0] || msg
+    relatorioGerado.value = false
+    reportData.value = null
+  }
 }
 
 function exportarPdf() {
@@ -193,6 +197,13 @@ const mensagemSemDados = computed(() => {
 @media print {
   .no-print {
     display: none !important;
+  }
+  @page {
+    size: landscape;
+  }
+  body, .q-page, .max-width-custom {
+    width: 100% !important;
+    max-width: none !important;
   }
 }
 </style>

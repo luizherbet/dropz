@@ -13,8 +13,9 @@ class DemandController extends Controller
 {
     public function index(Request $request)
     {
-        $demands = Demand::orderByRaw("CASE prioridade WHEN 'Alta' THEN 1 WHEN 'Normal' THEN 2 WHEN 'Baixa' THEN 3")
-            ->orderBy('created_at', 'asc')->get();
+        $demands = Demand::with('client')->orderByRaw("CASE prioridade WHEN 'Alta' THEN 1 WHEN 'Normal' THEN 2 WHEN 'Baixa' THEN 3 ELSE 4 END ASC")
+            ->orderBy('created_at', 'asc')
+            ->get();
 
         if ($demands->isEmpty()) {
             abort(404, 'Nenhum cliente encontrado');
@@ -33,15 +34,16 @@ class DemandController extends Controller
             'quem_deve_testar' => 'nullable|string|max:255',
             'descricao_detalhada' => 'nullable|string',
             'midia' => 'nullable|string|max:255',
-            'cobrada_do_cliente' => 'boolean',
             'valor_total' => 'nullable|numeric|min:0',
             'valor_pago' => 'nullable|numeric|min:0',
             'tempo_estimado' => 'nullable|integer|min:0',
-            'tempo_gasto' => 'nullable|integer|min:0',
             'status' => ['nullable', Rule::in(DemandStatus::values())],
             'flag_retornou' => 'boolean',
             'feedback' => 'nullable|string',
         ]);
+        $valorTotal = (float) ($validated['valor_total'] ?? 0);
+        $valorPago = (float) ($validated['valor_pago'] ?? 0);
+        $validated['cobrada_do_cliente'] = $valorTotal > 0 && $valorPago >= $valorTotal;
 
         $demand = Demand::create($validated);
         $demand->load('client');
@@ -62,15 +64,16 @@ class DemandController extends Controller
             'quem_deve_testar' => 'nullable|string|max:255',
             'descricao_detalhada' => 'nullable|string',
             'midia' => 'nullable|string|max:255',
-            'cobrada_do_cliente' => 'boolean',
             'valor_total' => 'nullable|numeric|min:0',
             'valor_pago' => 'nullable|numeric|min:0',
-            'tempo_estimado' => 'nullable|integer|min:0',
             'tempo_gasto' => 'nullable|integer|min:0',
             'status' => [Rule::in(DemandStatus::values())],
             'flag_retornou' => 'boolean',
             'feedback' => 'nullable|string',
         ]);
+        $valorTotal = (float) ($validated['valor_total'] ?? $demand->valor_total ?? 0);
+        $valorPago = (float) ($validated['valor_pago'] ?? $demand->valor_pago ?? 0);
+        $validated['cobrada_do_cliente'] = $valorTotal > 0 && $valorPago >= $valorTotal;
 
         $demand->update($validated);
         $demand->load('client');
@@ -146,9 +149,16 @@ class DemandController extends Controller
                 ], 422);
             }
         }
-
-        // FLUXO << CONCLUÍDO
+        // CALCULO DO TEMPO GASTO
         $updates = ['status' => $newStatus];
+
+        if ($newStatus === DemandStatus::Concluido->value && $currentStatus !== DemandStatus::Concluido->value) {
+            $minutos = $demand->created_at->diffInMinutes(now());
+            $horas = round($minutos / 60);
+            $updates['tempo_gasto'] = $horas;
+        }
+
+        // DEMANDA CONCLUIDA VOLTA PARA FLUXO
         if ($currentStatus === DemandStatus::Concluido->value && $newStatus !== DemandStatus::Concluido->value) {
             $updates['flag_retornou'] = true;
         }

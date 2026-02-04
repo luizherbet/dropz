@@ -9,9 +9,8 @@ use App\Http\Controllers\Api\ReportController;
 Route::apiResource('clients', ClientController::class)->only(['index', 'store', 'update']);
 
 // Demands
-Route::patch('demands/{demand}/status', [DemandController::class, 'updateStatus'])->name('demands.status');
+Route::patch('demands/{demand}/status', [DemandController::class, 'updateStatus']);
 Route::apiResource('demands', DemandController::class)->only(['index', 'store', 'update']);
 
 // Report
-Route::get('reports/clients/{client}', [ReportController::class, 'monthlyByClient'])
-    ->name('reports.clients.monthly');
+Route::get('reports/clients/{client}', [ReportController::class, 'monthlyByClient']);
