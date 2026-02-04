@@ -33,11 +33,12 @@ O backlog será organizado por dois critérios:
 
 Esse mesmo padrão de ordenação será aplicado às demais colunas do Kanban.
 
+---
 
 ### 2. Critérios de Autorização da Demanda
 
 **Dúvida:**  
-De que depende a autorização de uma demanda? Quais os requisitos para que um card possa entrar na fila? É necessário pagamento parcial ou total?
+De que depende a autorização de uma demanda? Quais os requisitos para que um card possa entrar na fila? É necessário pagamento parcial ou total?  
 Quais campos devem ser definidos no processo de aprovação para que o fluxo possa avançar?
 
 **Premissa adotada:**  
@@ -49,18 +50,19 @@ Para que uma demanda possa ser movida para a coluna **Fila**, os seguintes crit�
 
 Essas regras simulam critérios mínimos de validação antes do início da execução da demanda.
 
+---
 
-### 3. Relação entre Tempo Estimado e Tempo Gasto
+### 3. Atributos Tempo Estimado e Tempo Gasto
 
 **Dúvida:**  
-Quando o tempo gasto for maior que o tempo estimado, o card deve mudar de prioridade ou apenas sinalizar um alerta visual?
+Quando o tempo gasto for maior que o tempo estimado, o card deve mudar de prioridade? O tempo gasto deve ser atualizado em cada etapa do fluxo ou apenas quando for concluído?
 
 **Premissa adotada:**  
 A prioridade da demanda não será alterada automaticamente.  
-Quando o tempo gasto ultrapassar o tempo estimado, o card apenas mudará de cor como forma de alerta visual, indicando que a demanda necessita de atenção da equipe.
-
+O cálculo de tempo gasto será feito apenas quando o card for marcado como concluído.  
 A definição ou alteração da prioridade permanece como responsabilidade da equipe.
 
+---
 
 ### 4. Significado do Campo `flag_retornou`
 
@@ -70,6 +72,7 @@ O campo `flag_retornou` indica que a demanda foi reaberta após ter sido conclu�
 **Premissa adotada:**  
 Sim. O campo `flag_retornou` será utilizado para identificar demandas que retornaram ao fluxo após terem sido marcadas como concluídas.
 
+---
 
 ### 5. Entidade Demandas – Controle de Pagamento
 
@@ -79,6 +82,7 @@ Sim. O campo `flag_retornou` será utilizado para identificar demandas que retor
 **Premissa adotada:**  
 Foram adicionados os atributos `valor_total` e `valor_pago` à entidade de demandas para permitir esse controle.
 
+---
 
 ### 6. Entidade Demandas – Atributo data_cadastro e cliente
 
@@ -90,6 +94,7 @@ O atributo `cliente` (FK) não é descritivo, visto que a relação é estabelec
 Removi o atributo `data_cadastro`, pois o campo `created_at` gerado pelos `timestamps` será utilizado como data de cadastro da demanda.  
 Renomeei o atributo `cliente` para `cliente_id`.
 
+---
 
 ### 7. Relatório mensal – Período permitido
 
@@ -99,6 +104,7 @@ Regra de negócio para que o relatório por cliente não aceite mês superior ao
 **Premissa adotada:**  
 O mês/ano selecionado no relatório não pode ser superior ao mês/ano atual. Ou seja, não é permitido gerar relatório para período futuro; apenas meses já decorridos ou o mês corrente.
 
+---
 
 ### 8. Relatório – Campo de feedback (texto)
 
@@ -110,12 +116,23 @@ Foi adicionado o atributo `feedback` (texto, opcional) à entidade Demandas. Faz
 
 ---
 
+### 9. Atributo cobrado_do_cliente
+
+**Dúvida:**  
+Qual o sentido de ter esse atributo? Qual sua utilidade no contexto já que foram incluídos os atributos valor_pago e valor_total?
+
+**Premissa adotada:**  
+O atributo `cobrada_do_cliente` é calculado no backend:  
+- **Demanda cobrada** quando `valor_pago` == `valor_total`  
+- **Demanda com valor a cobrar** quando `valor_pago` < `valor_total`  
+No frontend, a informação é apenas exibida.
+
+---
+
 ## Planejamento
 
 A estrutura inicial das entidades no banco de dados é composta por **Cliente** e **Demanda**.  
 Um cliente pode possuir várias demandas, caracterizando um relacionamento **1:N**.
-
-A modelagem foi mantida propositalmente simples para respeitar o escopo do MVP e evitar complexidade desnecessária nesta etapa do desafio.
 
 Campos de *timestamps* foram adicionados às entidades com o objetivo de permitir, em uma evolução futura do sistema, a implementação de funcionalidades como **histórico de movimentações** ou **auditoria**.
 
@@ -141,7 +158,82 @@ O diagrama do modelo entidade-relacionamento está em [docs/dropz_MER.png](docs/
 14. `feat: implement demands API endpoints`
 15. `feat: implement kanban status update flow`
 16. `feat: implement monthly client report endpoint`
-17. `feat: add monthly client report page`
+17. `feat: frontend-backend integration + rule adjustments (time/paid_amount)`
+
+---
+
+## Branches e integração
+
+- **`main`**: branch estável (versão final do projeto)
+- **`frontend`**: desenvolvimento isolado do frontend
+- **`backend`**: desenvolvimento isolado do backend
+- **`frontend-backend-integration`**: branch usada para integrar frontend e backend
+  
+O commit de integração (**passo 17**) inclui:
+- a integração completa front ↔ API
+- ajustes das regras de negócio de **tempo gasto** e **valor pago**
+
+Após validar tudo na branch de integração, será feito **merge** para a `main`.
+
+---
+
+## Como rodar o projeto
+
+### Backend (Laravel)
+```bash
+cd backend
+composer install
+php artisan key:generate
+php artisan migrate
+php artisan serve
+```
+
+### Frontend (Vue + Quasar)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Portas padrão:**
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:9000`
+
+---
+
+## Variáveis de ambiente
+
+### Frontend
+No `.env` do frontend:
+```
+VITE_API_BASE_URL=http://localhost:8000/api
+```
+
+### Backend
+No `.env` do backend:
+- `APP_KEY` (gerado com `php artisan key:generate`)
+- Configuração do banco de dados (DB_*)
+
+---
+
+## Integração Front ↔ API
+
+- O frontend consome a API via Axios (`src/services/api.js`).
+- A base da API é definida por `VITE_API_BASE_URL`.
+- Respostas seguem o padrão:
+
+Sucesso:
+```json
+{ "data": ..., "message": "..." }
+```
+
+Erro:
+```json
+{ "message": "...", "errors": { "campo": ["mensagem"] } }
+```
+
+Regras críticas (pagamento, requisitos para mudança de status, feedback obrigatório, etc.) são **validadas no backend**.  
+O frontend apenas **consome e exibe** essas informações.
 
 ---
 
@@ -154,7 +246,6 @@ O diagrama do modelo entidade-relacionamento está em [docs/dropz_MER.png](docs/
 - **Vue Router** (`^4.0.0`) – Roteamento para aplicações Vue.
 - **Bootstrap Icons** (`^1.13.1`) – Biblioteca de ícones utilizada no projeto (importada em `src/css/app.scss`).
 
-
 ### Organização de componentes
 
 - **`src/pages/`** – Páginas: Clientes, Demandas, Kanban, Relatório mensal.
@@ -165,213 +256,17 @@ O diagrama do modelo entidade-relacionamento está em [docs/dropz_MER.png](docs/
 
 ### Decisões de interface
 
-- **Header (topo):** logo à esquerda; ícone do Git à direita.
-- **Menu:** logo abaixo do header, com os itens: Kanban, Clientes, Demandas, Relatório.
-- **Área principal:** conteúdo da página selecionada (colunas do Kanban, listagens ou relatório).
-- **Clientes:** exibe todos os clientes; permite buscar e tem opção “Cadastrar novo cliente”.
-- **Demandas:** exibe todas as demandas; permite buscar e tem botão para criar nova demanda.
-- **Kanban:** colunas por status; cards ordenados por prioridade (Alta, Normal, Baixa) e, dentro de cada prioridade, por data de criação. Os cards podem ser movidos de uma coluna para outra por **arrastar e soltar (drag and drop)**.
-- **Card na coluna:** exibe título, cliente, prioridade, setor, responsável e um ícone “i” quando a demanda foi reaberta (`flag_retornou`). Ao clicar no card, abre sobre a tela um modal com os dados completos da demanda. Ao **arrastar o card para outra coluna**, abre-se o modal para preencher o que faltar (ex.: campos obrigatórios para avançar naquele status). No modal há também um **botão para avançar para a próxima etapa do fluxo** (ex.: “Avançar para Fila”, “Marcar em desenvolvimento”).
-- **Feedback (etapa Teste):** ao avançar da etapa Teste para Deploy, o modal exige o preenchimento do campo feedback; quem testa (`quem_deve_testar`) preenche antes de avançar.
-- **Formulários:** nas telas de Clientes e de Demandas, uma lista dos itens; botão para cadastrar novo; ao clicar em um item, abre formulário ou modal para editar.
-- **Relatório:** solicita seleção do cliente e do mês/ano; exibe os dados conforme os filtros. O mês/ano selecionado não pode ser superior ao mês/ano atual (regra documentada em Dúvidas e Premissas). O relatório pode ser **exportado em PDF e em CSV**.
-- **Alerta de tempo:** quando tempo gasto > tempo estimado, o card exibe cor de alerta (prioridade não é alterada automaticamente).
+- **Header (topo):** logo à esquerda; ícone do Git à direita.  
+- **Menu:** logo abaixo do header, com os itens: Kanban, Clientes, Demandas, Relatório.  
+- **Área principal:** conteúdo da página selecionada (colunas do Kanban, listagens ou relatório).  
+- **Clientes:** exibe todos os clientes; permite buscar e tem opção “Cadastrar novo cliente”.  
+- **Demandas:** exibe todas as demandas; permite buscar e tem botão para criar nova demanda.  
+- **Kanban:** colunas por status; cards ordenados por prioridade (Alta, Normal, Baixa) e, dentro de cada prioridade, por data de criação. Os cards podem ser movidos de uma coluna para outra por **arrastar e soltar (drag and drop)**.  
+- **Card na coluna:** exibe título, cliente, prioridade, setor, responsável e um ícone “i” quando a demanda foi reaberta (`flag_retornou`). Ao clicar no card, abre um modal com os dados completos.  
+- **Modal de erros (movimentação):** ao tentar mover ou avançar um card sem cumprir as regras, é exibido um **modal com a lista de erros retornada pela API**.  
+- **Avançar status:** no modal existe um botão “Avançar” que envia a demanda para o próximo status, seguindo as regras do backend.  
+- **Feedback (etapa Teste):** ao avançar de Teste para Deploy, o campo feedback é obrigatório.  
+- **Tempo gasto:** é calculado automaticamente pelo backend **quando a demanda é concluída** e exibido no front em modo somente leitura.  
+- **Cobrança:** o status de cobrança é **exibido** no modal como “Demanda cobrada” ou “Demanda com valor a cobrar” (calculado no backend).  
+- **Relatório:** solicita seleção do cliente e do mês/ano; exibe os dados conforme os filtros. O mês/ano selecionado não pode ser superior ao mês/ano atual. O relatório pode ser **exportado em PDF e em CSV**.  
 - **Rodapé:** fixo na parte inferior da página, com meu nome.
-
-# Backend rules e integração frontend-backend (API)
-
-Regras e padrões do backend Laravel e como o frontend Vue/Quasar deve integrar com a API.
-
----
-
-## 1. Estrutura do backend
-
-### 1.1. Stack e contexto
-
-- **Backend**: Laravel 12 (PHP 8.2+)
-- **Frontend**: Vue 3 + Quasar 2 (Vite)
-- **Banco**: Postgres (alvo), mas `.env.example` hoje aponta SQLite como default
-- **Formato**: JSON (`Content-Type: application/json`, `Accept: application/json`)
-
-### 1.2. Organização geral
-
-- `backend/app/Http/Controllers` – Controllers da API (a serem criados):
-   - `ClientController`
-   - `DemandController`
-   - `ReportController`
-- `backend/app/Models` – Models Eloquent:
-   - `Client`
-   - `Demand`
-- `backend/routes/api.php` – Rotas da API (a serem usadas para os endpoints descritos abaixo)
-- `backend/database/migrations` – Migrations para:
-   - `clients`
-   - `demands`
-   - tabelas padrão do Laravel (users, cache, jobs etc.)
-  
-### 1.3. Convenções de código
-
-- **Controllers:** PascalCase com sufixo `Controller` (ex.: `ClientController`).
-- **Models:** PascalCase, singular (ex.: `Client`, `Demand`).
-- **Rotas:** usar prefixo `/api` e nomes em minúsculas (ex.: `/api/clients`, `/api/demands`).
-- **Respostas JSON:**
-   - Em sucesso, retornar objeto com `data` (e opcionalmente `message`).
-   - Em erro de validação (422), retornar `message` + `errors` por campo.
-   - Em erro genérico, retornar `message` descritiva.
-
----
-
-## 2. Convenções de API
-
-- **Base URL (dev)**: `http://localhost:8000/api`
-- **Nomenclatura**:
-   - Campos em **snake_case** (ex.: `cliente_id`, `quem_deve_testar`)
-   - Coleções no plural (ex.: `/clients`, `/demands`)
-- **Respostas**:
-   - Sucesso: `{ "data": ..., "message": "..."? }`
-   - Erro: `{ "message": "...", "errors": { ... }? }`
-
-### Códigos HTTP usados
-
-- **200** OK (GET/PUT/PATCH)
-- **201** Created (POST)
-- **400** Bad Request (payload inválido/sintaxe)
-- **404** Not Found
-- **422** Unprocessable Entity (validação e regras de negócio)
-- **500** Internal Server Error
-
----
-
-## 3. Regras de negócio (backend)
-
-### 3.1. Ordenação do Kanban (todas as colunas)
-
-- Ordenar por:
-   1. **prioridade**: `Alta > Normal > Baixa`
-   2. Dentro da prioridade: `created_at` asc (mais antigo primeiro)
-- Essa ordenação deve existir no backend para o frontend só renderizar.
-
-### 3.2. Critérios para mover Autorização → Fila
-
-Para uma demanda entrar em **Fila**, precisam ser verdadeiros:
-
-- `valor_pago >= 0.5 * valor_total`
-- `descricao_detalhada` com **mais de 50 caracteres**
-- Campos definidos (não vazios):
-   - `responsavel`
-   - `setor`
-   - `quem_deve_testar`
-
-Se falhar, retornar **422** com `errors` por campo (ou um erro geral se for regra composta).
-
-### 3.3. Feedback obrigatório em Teste → Deploy
-
-- Ao mover de **Teste** para **Deploy**, `feedback` deve estar preenchido (texto não vazio).
-- Se falhar, retornar **422**.
-
-### 3.4. Alerta "tempo gasto > tempo estimado"
-
-- Regra **não altera prioridade automaticamente**.
-- Backend deve expor `tempo_estimado` e `tempo_gasto` para o frontend sinalizar alerta visual.
-
-### 3.5. `flag_retornou`
-
-- Indica que a demanda **já foi concluída** e depois **voltou ao fluxo** (reaberta).
-- Quando uma demanda sair de `concluido` para qualquer status anterior, setar `flag_retornou = true`.
-
-### 3.6. Relatório mensal (período permitido)
-
-- Parâmetros `mes` e `ano` não podem representar data futura.
-- Se futuro, retornar **422**.
-
----
-
-## 4. Modelo de dados (contrato)
-
-### 4.1. Cliente
-
-```json
-{
-"id": 1,
-"nome": "Tech Solutions Ltda",
-"email": "contato@techsolutions.com",
-"avisar_por_email": true,
-"whatsapp": "(11) 99999-1111",
-"avisar_por_whatsapp": true,
-"observacoes": "Cliente corporativo",
-"created_at": "2026-02-03T10:15:30Z",
-"updated_at": "2026-02-03T10:15:30Z"
-}
-```
-
-### 4.2. Demanda
-
-```json
-{
-"id": 10,
-"cliente_id": 1,
-"titulo": "API relatório mensal",
-"prioridade": "Normal",
-"status": "autorizacao",
-"setor": "Financeiro",
-"responsavel": "Luiz",
-"quem_deve_testar": "Ana",
-"descricao_detalhada": "Texto detalhado com mais de 50 caracteres...",
-"midia": "https://...",
-"cobrada_do_cliente": false,
-"valor_total": 1000.00,
-"valor_pago": 500.00,
-"tempo_estimado": 12,
-"tempo_gasto": 8,
-"feedback": "Opcional, obrigatório no Teste→Deploy",
-"flag_retornou": false,
-"created_at": "2026-02-03T10:15:30Z",
-"updated_at": "2026-02-03T10:15:30Z"
-}
-```
-### 4.3. Enums/ domínios
-
-- prioridade: Alta | Normal | Baixa
-- status: backlog | autorizacao | fila | desenvolvimento | teste | deploy | concluido
-- Unidades:
-  tempo_estimado e tempo_gasto: horas (inteiro)
-  valor_total e valor_pago: decimal (2 casas)
-
-## 5. Endpoints (MVP)
-- Prefixo: /api
-
-### 5.1. Clientes - /clients
-- GET /clients
-- POST /clients
-- PUT /clients/{id}
-
-### 5.2. Demandas - /demands
-- GET /demands
-- POST /demands
-- PATCH /demands/{id}
-- PATCH /demands/{id}/status
-
-### 5.3. Relatório - /reports
-- GET /reports/clients/{id}?month=YYYY-MM
-
-## 6. Integração com frontend
-
-- Variável de ambiente:
-  VITE_API_BASE_URL=http://localhost:8000/api
-- Comunicação via Axios
-- Frontend apenas consome e renderiza
-- Regras críticas são validadas exclusivamente no backend
-
-## 7. CORS
-Durante o desenvolvimento, o backend permite requisições originadas de:
-
-http://localhost:9000 (Quasar dev server)
-
-Métodos permitidos:
-- GET
-- POST
-- PUT
-- PATCH
-
-Headers permitidos:
-Content-Type
-Accept
