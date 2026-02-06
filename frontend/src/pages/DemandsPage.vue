@@ -327,7 +327,7 @@ const rowsFiltrados = computed(() => {
   if (!termo) return demands.value
   return demands.value.filter((demand) => {
     const titulo = (demand.titulo || '').toLowerCase()
-    const cliente = (demand.client?.nome || d.cliente?.nome || '').toLowerCase()
+    const cliente = (demand.client?.nome || demand.cliente?.nome || '').toLowerCase()
     const responsavel = (demand.responsavel || '').toLowerCase()
     const status = (demand.status || '').toLowerCase()
     return (
