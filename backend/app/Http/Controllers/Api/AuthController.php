@@ -19,7 +19,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
         ]);
         $token = Auth::guard('api')->login($user);
         return response()->json([

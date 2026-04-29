@@ -1,13 +1,16 @@
 const routes = [
   {
+    path: '/authentication',
+    component: () => import('pages/AuthPage.vue'),
+  },
+  {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', redirect: '/kanban' },
-      { path: 'kanban', component: () => import('pages/KanbanPage.vue') },
-      { path: 'clientes', component: () => import('pages/ClientsPage.vue') },
-      { path: 'demandas', component: () => import('pages/DemandsPage.vue') },
-      { path: 'relatorio', component: () => import('pages/ReportPage.vue') },
+      {path: 'kanban', component: () => import('pages/KanbanPage.vue'), meta: {requiresAuth: true}},
+      {path: 'clientes', component: () => import('pages/ClientsPage.vue'), meta: {requiresAuth: true}},
+      {path: 'demandas', component: () => import('pages/DemandsPage.vue'), meta: {requiresAuth: true}},
+      {path: 'relatorio', component: () => import('pages/ReportPage.vue'), meta: {requiresAuth: true}}
     ],
   },
 
